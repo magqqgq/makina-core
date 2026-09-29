@@ -65,6 +65,11 @@ library Errors {
     error ManageFlashLoanReentrantCall();
     error MaxAuthorizedPriceChangeExceeded();
     error MaxValueLossExceeded();
+    /// @notice Thrown when a loss-tolerance parameter is set above MAX_BPS (10_000).
+    /// @dev Every loss bound is consumed as `MAX_BPS - value` in checked arithmetic.
+    ///      An out-of-range value would underflow and revert the consuming operation
+    ///      with an opaque panic, so it is rejected at the point it is set instead.
+    error InvalidMaxValueLossBps();
     error MessageAlreadyAuthorized();
     error Migrated();
     error MinOutputAmountExceedsInputAmount();

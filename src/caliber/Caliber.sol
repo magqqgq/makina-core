@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: BUSL-1.1
+﻿// SPDX-License-Identifier: BUSL-1.1
 pragma solidity 0.8.28;
 
 import {
@@ -537,30 +537,47 @@ contract Caliber is MakinaContext, AccessManagedUpgradeable, ReentrancyGuard, ER
     }
 
     /// @inheritdoc ICaliber
+    /// @dev The value is capped at MAX_BPS (10_000). `_checkPositionMinDelta` computes
+    ///      `MAX_BPS - maxLossBps`, so an out-of-range value would underflow in Solidity
+    ///      0.8 checked arithmetic and revert every position-management call with an
+    ///      opaque panic, bricking `_managePosition` and therefore all accounting.
     function setMaxPositionIncreaseLossBps(uint256 newMaxPositionIncreaseLossBps)
         external
         override
         onlyRiskManagerTimelock
     {
         CaliberStorage storage $ = _getCaliberStorage();
+        if (newMaxPositionIncreaseLossBps > MAX_BPS) {
+            revert Errors.InvalidMaxValueLossBps();
+        }
         emit MaxPositionIncreaseLossBpsChanged($._maxPositionIncreaseLossBps, newMaxPositionIncreaseLossBps);
         $._maxPositionIncreaseLossBps = newMaxPositionIncreaseLossBps;
     }
 
     /// @inheritdoc ICaliber
+    /// @dev Capped at MAX_BPS for the same reason as setMaxPositionIncreaseLossBps.
     function setMaxPositionDecreaseLossBps(uint256 newMaxPositionDecreaseLossBps)
         external
         override
         onlyRiskManagerTimelock
     {
         CaliberStorage storage $ = _getCaliberStorage();
+        if (newMaxPositionDecreaseLossBps > MAX_BPS) {
+            revert Errors.InvalidMaxValueLossBps();
+        }
         emit MaxPositionDecreaseLossBpsChanged($._maxPositionDecreaseLossBps, newMaxPositionDecreaseLossBps);
         $._maxPositionDecreaseLossBps = newMaxPositionDecreaseLossBps;
     }
 
     /// @inheritdoc ICaliber
+    /// @dev Capped at MAX_BPS for the same reason as setMaxPositionIncreaseLossBps.
+    ///      `_swap` computes `MAX_BPS - _maxSwapLossBps`, so an out-of-range value would
+    ///      underflow and brick both swapping and harvesting.
     function setMaxSwapLossBps(uint256 newMaxSwapLossBps) external override onlyRiskManagerTimelock {
         CaliberStorage storage $ = _getCaliberStorage();
+        if (newMaxSwapLossBps > MAX_BPS) {
+            revert Errors.InvalidMaxValueLossBps();
+        }
         emit MaxSwapLossBpsChanged($._maxSwapLossBps, newMaxSwapLossBps);
         $._maxSwapLossBps = newMaxSwapLossBps;
     }

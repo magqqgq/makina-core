@@ -124,10 +124,18 @@ abstract contract BridgeController is MakinaContext, IBridgeController {
     }
 
     /// @dev Internal logic to set the max allowed value loss in basis points for transfers via a given bridge.
+    /// @dev The value is capped at MAX_BPS (10_000). `_scheduleOutBridgeTransfer` computes
+    ///      `MAX_BPS - maxBridgeLossBps`, so an out-of-range value would underflow in
+    ///      Solidity 0.8 checked arithmetic and revert every subsequent bridge transfer
+    ///      with an opaque panic instead of a named error, permanently bricking the
+    ///      bridge with no recovery path other than re-setting this parameter.
     function _setMaxBridgeLossBps(uint16 bridgeId, uint256 maxBridgeLossBps) internal {
         BridgeControllerStorage storage $ = _getBridgeControllerStorage();
         if ($._bridgeAdapters[bridgeId] == address(0)) {
             revert Errors.InvalidBridgeId();
+        }
+        if (maxBridgeLossBps > MAX_BPS) {
+            revert Errors.InvalidMaxValueLossBps();
         }
         emit MaxBridgeLossBpsChanged(bridgeId, $._maxBridgeLossBps[bridgeId], maxBridgeLossBps);
         $._maxBridgeLossBps[bridgeId] = maxBridgeLossBps;
